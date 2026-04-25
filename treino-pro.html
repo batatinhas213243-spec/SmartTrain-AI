@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TreinoPRO — Gerador de Treinos com IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1c1c2a;
+    --accent: #e8ff3c;
+    --accent2: #ff4d6d;
+    --accent3: #3cffd5;
+    --text: #f0f0f8;
+    --muted: #6a6a8a;
+    --border: rgba(232,255,60,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BG GRID */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,60,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,60,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(232,255,60,0.4);
+  }
+
+  .logo span { color: var(--text); }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 10px;
+    letter-spacing: 2px;
+    border-radius: 2px;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 80px 48px 60px;
+  }
+
+  .hero-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    color: var(--accent3);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.2s forwards;
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.4s forwards;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+    text-shadow: 0 0 60px rgba(232,255,60,0.3);
+  }
+
+  .hero p {
+    max-width: 520px;
+    margin: 0 auto 48px;
+    color: var(--muted);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.6s forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SPORT PILLS */
+  .sports-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 0 48px 8px;
+    scrollbar-width: none;
+    position: relative;
+    z-index: 10;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 60px;
+  }
+
+  .sport-pill {
+    flex-shrink: 0;
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+
+  .sport-pill:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,255,60,0.05);
+  }
+
+  .sport-pill.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* FORM */
+  .form-container {
+    position: relative;
+    z-index: 10;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-group label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .form-group select,
+  .form-group input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .form-group select:focus,
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .form-group select option { background: #1c1c2a; }
+
+  .form-full { grid-column: 1 / -1; }
+
+  textarea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    width: 100%;
+    height: 90px;
+    resize: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { outline: none; border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .generate-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 4px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(232,255,60,0.3);
+  }
+
+  .generate-btn:active { transform: translateY(0); }
+
+  .generate-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .generate-btn .btn-loader {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .generate-btn.loading .btn-text { display: none; }
+  .generate-btn.loading .btn-loader { display: flex; }
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(10,10,15,0.3);
+    border-top-color: var(--bg);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* OUTPUT */
+  .output-section {
+    position: relative;
+    z-index: 10;
+    max-width: 860px;
+    margin: 48px auto 0;
+    padding: 0 48px 80px;
+    display: none;
+  }
+
+  .output-section.visible { display: block; }
+
+  .output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .output-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+
+  .copy-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--accent3);
+    border: 1px solid var(--accent3);
+    background: transparent;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover { background: rgba(60,255,213,0.1); }
+
+  .workout-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .workout-content {
+    padding: 32px;
+    line-height: 1.8;
+    font-size: 0.95rem;
+    color: var(--text);
+    white-space: pre-wrap;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .workout-content h1, .workout-content h2, .workout-content h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    margin: 20px 0 10px;
+  }
+
+  .workout-content h1 { font-size: 2rem; color: var(--accent); }
+  .workout-content h2 { font-size: 1.4rem; color: var(--accent3); }
+  .workout-content h3 { font-size: 1.1rem; color: var(--text); }
+
+  .workout-content strong { color: var(--accent); font-weight: 600; }
+  .workout-content em { color: var(--accent3); font-style: normal; }
+
+  /* DIVIDER */
+  .divider {
+    width: 60px;
+    height: 2px;
+    background: var(--accent);
+    margin: 80px auto;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* HOW IT WORKS */
+  .how-section {
+    position: relative;
+    z-index: 10;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 48px 100px;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    letter-spacing: 3px;
+    margin-bottom: 40px;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .step {
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .step::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .step-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: rgba(232,255,60,0.15);
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+
+  .step h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  .step p {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 32px;
+    border-top: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  /* STREAMED TEXT */
+  .streaming-cursor::after {
+    content: '▋';
+    color: var(--accent);
+    animation: blink 0.7s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @media (max-width: 700px) {
+    header { padding: 20px 24px; }
+    .hero { padding: 60px 24px 40px; }
+    .sports-scroll { padding: 0 24px 8px; }
+    .form-container, .output-section, .how-section { padding-left: 24px; padding-right: 24px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .form-full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Treino<span>PRO</span></div>
+  <div class="badge">IA POWERED</div>
+</header>
+
+<section class="hero">
+  <p class="hero-eyebrow">⚡ Gerador Inteligente de Treinos</p>
+  <h1>TREINOS<br>FEITOS EM<br><em>SEGUNDOS</em></h1>
+  <p>Economize horas de planejamento. Nossa IA cria treinos personalizados para qualquer esporte, nível e objetivo em segundos.</p>
+</section>
+
+<!-- SPORTS PILLS -->
+<div class="sports-scroll" id="sportsContainer">
+  <div class="sport-pill active" data-sport="Futebol">⚽ Futebol</div>
+  <div class="sport-pill" data-sport="Basquete">🏀 Basquete</div>
+  <div class="sport-pill" data-sport="Natação">🏊 Natação</div>
+  <div class="sport-pill" data-sport="Atletismo">🏃 Atletismo</div>
+  <div class="sport-pill" data-sport="Musculação">💪 Musculação</div>
+  <div class="sport-pill" data-sport="Vôlei">🏐 Vôlei</div>
+  <div class="sport-pill" data-sport="Tênis">🎾 Tênis</div>
+  <div class="sport-pill" data-sport="Ciclismo">🚴 Ciclismo</div>
+  <div class="sport-pill" data-sport="Boxe">🥊 Boxe</div>
+  <div class="sport-pill" data-sport="Yoga">🧘 Yoga</div>
+  <div class="sport-pill" data-sport="Crossfit">🏋️ Crossfit</div>
+  <div class="sport-pill" data-sport="Corrida">👟 Corrida</div>
+</div>
+
+<!-- FORM -->
+<div class="form-container">
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Nível do Atleta</label>
+      <select id="nivel">
+        <option value="iniciante">Iniciante</option>
+        <option value="intermediário">Intermediário</option>
+        <option value="avançado" selected>Avançado</option>
+        <option value="elite/profissional">Elite / Profissional</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Objetivo Principal</label>
+      <select id="objetivo">
+        <option value="força e potência">Força e Potência</option>
+        <option value="resistência aeróbica">Resistência Aeróbica</option>
+        <option value="velocidade e agilidade" selected>Velocidade e Agilidade</option>
+        <option value="hipertrofia muscular">Hipertrofia Muscular</option>
+        <option value="perda de peso">Perda de Peso</option>
+        <option value="recuperação e mobilidade">Recuperação e Mobilidade</option>
+        <option value="técnica e coordenação">Técnica e Coordenação</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Duração da Sessão</label>
+      <select id="duracao">
+        <option value="30 minutos">30 min</option>
+        <option value="45 minutos">45 min</option>
+        <option value="60 minutos" selected>60 min</option>
+        <option value="90 minutos">90 min</option>
+        <option value="120 minutos">120 min</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Faixa Etária</label>
+      <select id="idade">
+        <option value="criança (8-12 anos)">Criança (8-12)</option>
+        <option value="adolescente (13-17 anos)">Adolescente (13-17)</option>
+        <option value="adulto jovem (18-35 anos)" selected>Adulto (18-35)</option>
+        <option value="adulto (36-55 anos)">Adulto (36-55)</option>
+        <option value="sênior (55+ anos)">Sênior (55+)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Local de Treino</label>
+      <select id="local">
+        <option value="academia completa" selected>Academia Completa</option>
+        <option value="campo/quadra">Campo / Quadra</option>
+        <option value="piscina">Piscina</option>
+        <option value="ao ar livre / parque">Ao Ar Livre</option>
+        <option value="em casa sem equipamentos">Em Casa</option>
+        <option value="em casa com equipamentos básicos">Casa c/ Equipamentos</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Fase da Temporada</label>
+      <select id="fase">
+        <option value="pré-temporada">Pré-Temporada</option>
+        <option value="temporada competitiva" selected>Temporada</option>
+        <option value="pós-temporada / recuperação">Pós-Temporada</option>
+        <option value="off-season">Off-Season</option>
+      </select>
+    </div>
+    <div class="form-group form-full">
+      <label>Observações / Restrições (opcional)</label>
+      <textarea id="obs" placeholder="Ex: atleta com leve dor no joelho direito, foco em trabalho explosivo, grupo de 15 jogadores..."></textarea>
+    </div>
+  </div>
+
+  <button class="generate-btn" id="generateBtn" onclick="gerarTreino()">
+    <span class="btn-text">⚡ GERAR TREINO AGORA</span>
+    <span class="btn-loader"><span class="spinner"></span> GERANDO...</span>
+  </button>
+</div>
+
+<!-- OUTPUT -->
+<div class="output-section" id="outputSection">
+  <div class="output-header">
+    <div class="output-title" id="outputTitle">SEU TREINO</div>
+    <button class="copy-btn" onclick="copiarTreino()">COPIAR TREINO</button>
+  </div>
+  <div class="workout-card">
+    <div class="workout-content" id="workoutContent"></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- HOW IT WORKS -->
+<div class="how-section">
+  <div class="section-title">COMO FUNCIONA</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <h3>Selecione o Esporte</h3>
+      <p>Escolha entre 12+ modalidades esportivas. Cada treino é adaptado às demandas específicas do esporte.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <h3>Configure o Perfil</h3>
+      <p>Informe nível, objetivo, duração e condições do atleta. Quanto mais detalhes, mais preciso o treino.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <h3>IA Gera em Segundos</h3>
+      <p>Nossa IA cria um treino completo com aquecimento, parte principal, séries, repetições e cooldown.</p>
+    </div>
+  </div>
+</div>
+
+<footer>© 2026 TREINOPRO — GERADOR DE TREINOS COM IA</footer>
+
+<script>
+  let esporteSelecionado = 'Futebol';
+
+  document.querySelectorAll('.sport-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.sport-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      esporteSelecionado = pill.dataset.sport;
+    });
+  });
+
+  function formatWorkout(text) {
+    return text
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^---$/gm, '<hr style="border:none;border-top:1px solid rgba(232,255,60,0.15);margin:16px 0;">')
+      .replace(/\n/g, '<br>');
+  }
+
+  async function gerarTreino() {
+    const btn = document.getElementById('generateBtn');
+    const output = document.getElementById('outputSection');
+    const content = document.getElementById('workoutContent');
+    const title = document.getElementById('outputTitle');
+
+    const nivel = document.getElementById('nivel').value;
+    const objetivo = document.getElementById('objetivo').value;
+    const duracao = document.getElementById('duracao').value;
+    const idade = document.getElementById('idade').value;
+    const local = document.getElementById('local').value;
+    const fase = document.getElementById('fase').value;
+    const obs = document.getElementById('obs').value;
+
+    btn.disabled = true;
+    btn.classList.add('loading');
+
+    output.classList.add('visible');
+    title.textContent = `TREINO DE ${esporteSelecionado.toUpperCase()}`;
+    content.innerHTML = '<span class="streaming-cursor" style="color:var(--muted);font-size:0.85rem">Gerando seu treino personalizado</span>';
+
+    const prompt = `Você é um treinador esportivo de elite. Crie um treino COMPLETO e DETALHADO com as seguintes especificações:
+
+**Esporte:** ${esporteSelecionado}
+**Nível:** ${nivel}
+**Objetivo:** ${objetivo}
+**Duração total:** ${duracao}
+**Faixa etária:** ${idade}
+**Local:** ${local}
+**Fase da temporada:** ${fase}
+${obs ? `**Observações:** ${obs}` : ''}
+
+O treino deve conter:
+1. **AQUECIMENTO** (com tempo e exercícios específicos)
+2. **PARTE PRINCIPAL** (exercícios detalhados com séries, repetições, tempos de descanso, intensidade)
+3. **VOLTA À CALMA / COOLDOWN**
+4. **DICAS DO TREINADOR** (2-3 pontos chave)
+
+Seja específico com cargas, tempos, distâncias. Use markdown para formatação. Inclua emojis esportivos para deixar mais dinâmico. O treino deve ser profissional e aplicável imediatamente.`;
+
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1500,
+          stream: true,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      content.innerHTML = '';
+      let fullText = '';
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                fullText += parsed.delta.text;
+                content.innerHTML = formatWorkout(fullText) + '<span class="streaming-cursor"></span>';
+                output.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            } catch {}
+          }
+        }
+      }
+
+      content.innerHTML = formatWorkout(fullText);
+
+    } catch (err) {
+      content.innerHTML = '<span style="color:var(--accent2)">Erro ao gerar treino. Verifique sua conexão e tente novamente.</span>';
+    }
+
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+
+  function copiarTreino() {
+    const text = document.getElementById('workoutContent').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      const original = btn.textContent;
+      btn.textContent = '✓ COPIADO!';
+      btn.style.color = 'var(--accent)';
+      btn.style.borderColor = 'var(--accent)';
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
