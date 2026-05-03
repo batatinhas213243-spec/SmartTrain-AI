@@ -728,14 +728,24 @@ window.filterC=(c,btn)=>{catF=c;document.querySelectorAll('.cb').forEach(b=>b.cl
 function md(t){return t.replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>').replace(/^---$/gm,'<hr>').replace(/^[-*] (.+)$/gm,'<li>$1</li>').replace(/^\d+\. (.+)$/gm,'<li>$1</li>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');}
 
 // ===== ANTHROPIC API (works from browser via claude.ai) =====
+const GROQ_KEY="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";
+// Groq models to try in order (fallback chain)
+const GROQ_MODELS=["llama-3.3-70b-versatile","llama3-70b-8192","llama3-8b-8192","gemma2-9b-it"];
+
 async function callAI(prompt){
-  const res=await fetch("https://api.anthropic.com/v1/messages",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2500,stream:true,messages:[{role:"user",content:prompt}]})
-  });
-  if(!res.ok)throw new Error("API status: "+res.status);
-  return res;
+  let lastErr=null;
+  for(const model of GROQ_MODELS){
+    try{
+      const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+GROQ_KEY},
+        body:JSON.stringify({model,max_tokens:2500,stream:true,messages:[{role:"system",content:"Você é um preparador físico profissional de alto nível. Responda sempre em português brasileiro com linguagem técnica e motivadora."},{role:"user",content:prompt}]})
+      });
+      if(res.ok)return res;
+      const err=await res.text();lastErr=new Error("Modelo "+model+" falhou: "+err);
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error("Todos os modelos falharam");
 }
 
 async function streamToElement(res,el){
@@ -745,7 +755,11 @@ async function streamToElement(res,el){
     const{done,value}=await reader.read();if(done)break;
     for(const line of dec.decode(value,{stream:true}).split('\n')){
       if(line.startsWith('data: ')&&line.trim()!=='data: [DONE]'){
-        try{const j=JSON.parse(line.slice(6));const t=j.delta?.text||j.choices?.[0]?.delta?.content||'';if(t){full+=t;el.innerHTML=md(full)+'<span class="scc"></span>';}}catch(_){}
+        try{
+          const j=JSON.parse(line.slice(6));
+          const t=j.choices?.[0]?.delta?.content||'';
+          if(t){full+=t;el.innerHTML=md(full)+'<span class="scc"></span>';}
+        }catch(_){}
       }
     }
   }
