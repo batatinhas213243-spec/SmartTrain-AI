@@ -728,46 +728,64 @@ window.filterC=(c,btn)=>{catF=c;document.querySelectorAll('.cb').forEach(b=>b.cl
 function md(t){return t.replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>').replace(/^---$/gm,'<hr>').replace(/^[-*] (.+)$/gm,'<li>$1</li>').replace(/^\d+\. (.+)$/gm,'<li>$1</li>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');}
 
 // ===== ANTHROPIC API (works from browser via claude.ai) =====
-// Usando Pollinations AI - 100% gratuito, sem chave, sem cadastro
-async function callAI(prompt){
-  // Pollinations não tem streaming, retorna resposta completa
-  return {_pollinations: true, _prompt: prompt};
-}
+// Pollinations AI - 100% gratuito, sem chave, sem cadastro
+async function callAI(prompt){ return {_p:true,_prompt:prompt}; }
 
-async function streamToElement(res, el){
-  el.innerHTML = '<span style="color:var(--mu);font-size:.84rem">Gerando seu treino com IA<span class="scc"></span></span>';
+async function streamToElement(res,el){
+  if(!res._p){el.innerHTML=md('');return '';}
+  const prompt=res._prompt;
   
-  if(res._pollinations){
-    const prompt = res._prompt;
+  // Animação de digitação
+  let dots=0;
+  const interval=setInterval(()=>{
+    dots=(dots+1)%4;
+    el.innerHTML=`<span style="color:var(--mu);font-size:.9rem">⚡ Gerando treino com IA${''.padEnd(dots,'.')}${''.padEnd(3-dots,' ')}</span>`;
+  },400);
+
+  try{
+    // Método 1: Pollinations AI POST (mais confiável)
+    const r=await fetch("https://text.pollinations.ai/",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        messages:[
+          {role:"system",content:"Você é um preparador físico profissional. Responda SEMPRE em português brasileiro. Use markdown com # ## ### **negrito**. Seja técnico e detalhado."},
+          {role:"user",content:prompt}
+        ],
+        model:"openai",
+        seed:Math.floor(Math.random()*9999),
+        private:true
+      })
+    });
+    clearInterval(interval);
+    if(!r.ok) throw new Error("status "+r.status);
+    const full=await r.text();
+    if(!full||full.length<50) throw new Error("resposta vazia");
+    el.innerHTML=md(full);
+    return full;
+  }catch(e1){
+    // Método 2: Pollinations GET
     try{
-      // Usar Pollinations AI com modelo llama
-      const encoded = encodeURIComponent(prompt);
-      const url = `https://text.pollinations.ai/${encoded}?model=openai&seed=${Date.now()}&json=false`;
-      const r = await fetch(url);
-      if(!r.ok) throw new Error("Pollinations falhou: "+r.status);
-      const full = await r.text();
-      el.innerHTML = md(full);
-      return full;
-    }catch(e){
-      // Fallback: Open Router (sem chave para alguns modelos)
-      try{
-        const r2 = await fetch("https://openrouter.ai/api/v1/chat/completions",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","HTTP-Referer":"https://batatinhas213243-spec.github.io","X-Title":"SmartTrain AI"},
-          body:JSON.stringify({model:"meta-llama/llama-3.1-8b-instruct:free",max_tokens:2000,messages:[{role:"user",content:prompt}]})
-        });
-        if(!r2.ok) throw new Error("OpenRouter falhou: "+r2.status);
-        const j2 = await r2.json();
-        const full2 = j2.choices?.[0]?.message?.content || '';
-        if(!full2) throw new Error("Resposta vazia");
-        el.innerHTML = md(full2);
-        return full2;
-      }catch(e2){
-        throw new Error("Falha na geração: "+e2.message);
-      }
+      const sysMsg="Você é preparador físico. Responda em português com markdown técnico.";
+      const fullPrompt=sysMsg+"\n\n"+prompt;
+      const url="https://text.pollinations.ai/"+encodeURIComponent(fullPrompt)+"?model=openai&seed="+Math.floor(Math.random()*9999);
+      const r2=await fetch(url);
+      clearInterval(interval);
+      if(!r2.ok) throw new Error("GET falhou: "+r2.status);
+      const full2=await r2.text();
+      if(!full2||full2.length<50) throw new Error("vazio");
+      el.innerHTML=md(full2);
+      return full2;
+    }catch(e2){
+      clearInterval(interval);
+      el.innerHTML=`<div style="color:#ff6b6b;padding:13px;background:rgba(255,100,100,.09);border-radius:8px;border:1px solid rgba(255,100,100,.2)">
+        <strong>❌ Erro ao gerar treino</strong><br>
+        <small style="color:var(--mu)">${e2.message}</small><br><br>
+        <span style="font-size:.82rem">Verifique sua conexão e tente novamente em alguns segundos.</span>
+      </div>`;
+      return '';
     }
   }
-  return '';
 }
 
 // ===== GENERATE =====
